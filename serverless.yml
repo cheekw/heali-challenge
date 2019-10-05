@@ -1,0 +1,78 @@
+service: heali-challenge
+
+custom:
+  menuImageTableName: menu-image-table-${self:provider.stage}
+  menuJsonTableName: menu-json-table-${self:provider.stage}
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: dev
+  region: us-west-2
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource:
+        - { "Fn::GetAtt": ["MenuImageTable", "Arn"] }
+        - { "Fn::GetAtt": ["MenuJsonTable", "Arn"] }
+  environment:
+    MENU_IMAGE_TABLE: ${self:custom.menuImageTableName}
+    MENU_JSON_TABLE: ${self:custom.menuJsonTableName}
+
+functions:
+  app:
+    handler: index.handler
+    events:
+      - http: "ANY /"
+      - http: "ANY {proxy+}"
+  createMenuImage:
+    handler: index.handler
+    events:
+      - http: "POST /menuimage"
+  getMenuImage:
+    handler: index.handler
+    events:
+      - http: "GET /menuimage/{proxy+}"
+  createMenuJson:
+    handler: index.handler
+    events:
+      - http: "POST /menujson"
+  getMenuJson:
+    handler: index.handler
+    events:
+      - http: "GET /menujson/{proxy+}"
+
+resources:
+  Resources:
+    MenuImageTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: ${self:custom.menuImageTableName}
+        AttributeDefinitions:
+          - AttributeName: menuId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: menuId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+    MenuJsonTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: ${self:custom.menuJsonTableName}
+        AttributeDefinitions:
+          - AttributeName: menuId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: menuId
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
